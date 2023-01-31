@@ -1,15 +1,22 @@
 function love.load()
+    -- initialization 
     love.window.setTitle("snake")
-    snake = {{x = 200, y = 200}, {x = 190, y = 200}, {x = 180, y = 200}}
-    repositionfood()
+    sound = love.audio.newSource("beep.mp3", "static")
+    font = love.graphics.newFont(18)
     score = 0
     speed = 1
+    snakewidth = 10
+    snakeheight = 10
+
+    -- initialize game
+    snake = {{x = 200, y = 200}, {x = 190, y = 200}, {x = 180, y = 200}}
+    repositionfood()
     direction = "right"
     gamestatus = "gamestarted"
-    font = love.graphics.newFont(18)
 end
 
 function love.update(dt)
+    --setup move direction updates
     if direction == "right" then
         snake[1].x = snake[1].x + speed
     elseif direction == "left" then
@@ -19,39 +26,45 @@ function love.update(dt)
     elseif direction == "down" then
         snake[1].y = snake[1].y + speed
     end
-
-    --update segments
-    for i = #snake, 2, -1 do --for i in the length of snake
-    snake[i].x = snake[i-1].x
-    snake[i].y = snake[i-1].y
+    --make the segments follow the head
+    for i = #snake, 2, -1 do
+        snake[i].x = snake[i-1].x
+        snake[i].y = snake[i-1].y
     end
 
-    if checkcollision(snake[1].x, snake[1].y, 10, 10, food.x, food.y, 10, 10)  then
+    --check collisions for scoring
+    if checkcollision(snake[1].x, snake[1].y, snakewidth, snakeheight, food.x, food.y, snakewidth, snakeheight)  then
+        sound:play()
         repositionfood()
         updatescore()
         updatespeed()
         growsnake()
     end
 
-    if checkcollisionself(snake[1].x, snake[1].y) then
-        gamestatus = "gameover"
-    end
-
-    if checkwallupleft(snake[1].x, snake[1].y) or checkwalldownright(snake[1].x, snake[1].y) then
+    --check game over collisions
+    if checkcollisionself(snake[1].x, snake[1].y) or checkwallupleft(snake[1].x, snake[1].y) or checkwalldownright(snake[1].x + snakewidth, snake[1].y + snakeheight) then
         gamestatus = "gameover"
     end
 end
 
 function love.draw()
+    --draw font and colors
     love.graphics.setFont(font)
+    love.graphics.setBackgroundColor(96/255, 106/255, 65/255)
+    love.graphics.setColor(62/255, 57/255, 51/255)
+
+    --draw game over screen
     if gamestatus == "gameover" then
-        love.graphics.print("Game over", love.graphics.getWidth() / 2 - 60, love.graphics.getHeight() / 2)
-        love.graphics.print("Press (r) to restart.", love.graphics.getWidth() / 2 - 90, love.graphics.getHeight() / 2 + 30);
+        love.graphics.printf("Game Over", 0, love.graphics.getHeight() / 2, love.graphics.getWidth(), "center")
+        love.graphics.printf("Press (enter) to restart", 0, love.graphics.getHeight() / 2 + 20, love.graphics.getWidth(), "center")
     else
-    love.graphics.rectangle("fill", food.x, food.y, 10, 10)
+        --draw game screen
+        love.graphics.rectangle("fill", food.x, food.y, snakewidth, snakeheight)
+
     for i, segment in ipairs(snake) do
-    love.graphics.rectangle("fill", segment.x, segment.y, 10, 10)
+        love.graphics.rectangle("fill", segment.x, segment.y, snakewidth, snakeheight)
     end
+
     love.graphics.print("Score: " .. score, 10, 10)
     end
 end
@@ -65,7 +78,7 @@ function love.keypressed(key)
         direction = "up"
     elseif key == "down" and direction ~= "up" then
         direction = "down"
-    elseif key == "r" then
+    elseif key == "r" or key == "return" then
         love.load()
     elseif key == "escape" then
         love.event.quit()
@@ -74,9 +87,9 @@ end
 
 function checkcollision(x1, y1, w1, h1, x2, y2, w2, h2)
     return x1 < x2 + w2 and
-    x2 < x1 + w1 and
-    y1 < y2 + h2 and 
-    y2 < y1 + h1
+        x2 < x1 + w1 and
+        y1 < y2 + h2 and 
+        y2 < y1 + h1
 end
 
 function checkwallupleft(x, y)
@@ -96,7 +109,7 @@ function updatescore()
 end
 
 function updatespeed()
-    speed = speed + 0.2
+    speed = speed + 0.05
 end
 
 function growsnake()
@@ -105,8 +118,8 @@ end
 
 function checkcollisionself(x, y)
     for i, segment in ipairs(snake) do
-    if i > 2 and x == segment.x and y == segment.y then
-        return true
+        if i > 2 and x == segment.x and y == segment.y then
+            return true
         end
     end
     return false
